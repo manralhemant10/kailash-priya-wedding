@@ -1,60 +1,14 @@
-(() => {
-  const body    = document.body;
-  const gate    = document.getElementById('gate');
-  const openBtn = document.getElementById('openBtn');
-  const invite  = document.getElementById('invite');
-  const music   = document.getElementById('music');
-  const toggle  = document.getElementById('musicToggle');
-  const reduce  = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  /* ---- Open the invitation ---- */
-  openBtn.addEventListener('click', () => {
-    gate.classList.add('is-open');
-    body.classList.remove('locked');
-    invite.removeAttribute('aria-hidden');
-    toggle.hidden = false;
-    music.volume = 0.6;
-    music.play().catch(() => toggle.classList.add('muted')); // autoplay can be blocked
-    window.scrollTo(0, 0);
-  });
-
-  /* ---- Music toggle ---- */
-  toggle.addEventListener('click', () => {
-    if (music.paused) { music.play(); toggle.classList.remove('muted'); }
-    else              { music.pause(); toggle.classList.add('muted'); }
-  });
-
-  /* ---- Pause music when tab is hidden ---- */
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) music.pause();
-    else if (gate.classList.contains('is-open') && !toggle.classList.contains('muted')) music.play().catch(()=>{});
-  });
-
-  /* ---- Parallax ---- */
-  const layers = [...document.querySelectorAll('.layer')];
-  let ticking = false;
-  function parallax() {
-    const y = window.scrollY;
-    const h = window.innerHeight;
-    if (y < h * 1.2) {
-      layers.forEach(l => {
-        const s = parseFloat(l.dataset.speed || 0);
-        l.style.transform = `translate3d(0, ${y * s}px, 0)`;
-      });
-    }
-    ticking = false;
-  }
-  if (!reduce) {
-    window.addEventListener('scroll', () => {
-      if (!ticking) { requestAnimationFrame(parallax); ticking = true; }
-    }, { passive: true });
-  }
-
-  /* ---- Reveal on scroll ---- */
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+(()=>{'use strict';const $=id=>document.getElementById(id),audio=$('audio'),music=$('music');
+function musicState(on){music.setAttribute('aria-pressed',String(on));music.setAttribute('aria-label',on?'Pause background music':'Play background music');music.querySelector('span').textContent=on?'Music on':'Music off'}
+async function play(){try{audio.volume=.4;await audio.play();musicState(true)}catch{musicState(false)}}
+function open(withMusic){$('cover').classList.add('opened');$('cover').setAttribute('aria-hidden','true');$('cover').inert=true;if(withMusic)play();setTimeout(()=>document.querySelector('.monogram').focus({preventScroll:true}),600)}
+$('open').addEventListener('click',()=>open(true));music.addEventListener('click',()=>{if(audio.paused)play();else{audio.pause();musicState(false)}});audio.addEventListener('pause',()=>musicState(false));
+const target=new Date('2026-11-25T20:00:00+05:30').getTime();function tick(){let s=Math.max(0,Math.floor((target-Date.now())/1000));const v=[Math.floor(s/86400),Math.floor(s/3600)%24,Math.floor(s/60)%60,s%60];['days','hours','minutes','seconds'].forEach((k,i)=>$(k).textContent=String(v[i]).padStart(2,'0'));if(target<=Date.now())$('clock').setAttribute('aria-label','The wedding day has arrived')}tick();setInterval(tick,1000);
+$('calendar').addEventListener('click',()=>{const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Manral Rawat Wedding//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:kailash-priya-20261125@invitation','DTSTAMP:20261017T000000Z','DTSTART:20261125T143000Z','SUMMARY:Kailash & Priya Wedding','LOCATION:Kings Court\\, Haridwar Rd\\, Jogiwala\\, Dehradun\\, Uttarakhand 248005','DESCRIPTION:Wedding ceremony from 8 PM IST. We look forward to celebrating with you.','END:VEVENT','END:VCALENDAR'].join('\r\n');const u=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='Kailash-Priya-Wedding.ics';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);$('calendar-note').textContent='Calendar invitation downloaded. Open it to add the wedding.'});
+$('copy-address').addEventListener('click',async()=>{const address='Kings Court, Haridwar Road, Jogiwala, Dehradun, Uttarakhand 248005';try{await navigator.clipboard.writeText(address);$('copy-status').textContent='Venue address copied.'}catch{$('copy-status').textContent=address}});
+if('IntersectionObserver'in window){document.documentElement.classList.add('js');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal').forEach(el=>io.observe(el))}
 })();
+
+(()=>{const cover=document.getElementById('cover');document.getElementById('replay').addEventListener('click',()=>{cover.classList.remove('opened');cover.removeAttribute('aria-hidden');cover.inert=false;document.body.classList.add('invitation-closed');document.getElementById('open').focus({preventScroll:true})});document.body.classList.add('invitation-closed');['open'].forEach(id=>document.getElementById(id).addEventListener('click',()=>document.body.classList.remove('invitation-closed')));const progress=document.querySelector('.reading-progress'),venue=document.querySelector('.floating-venue');let scheduled=false;function update(){const range=document.documentElement.scrollHeight-innerHeight;progress.style.transform='scaleX('+(range>0?Math.min(1,scrollY/range):0)+')';venue.classList.toggle('show',scrollY>innerHeight*.7&&scrollY<document.documentElement.scrollHeight-innerHeight-450);scheduled=false}addEventListener('scroll',()=>{if(!scheduled){requestAnimationFrame(update);scheduled=true}},{passive:true});addEventListener('resize',update);update()})();
+
+(()=>{const params=new URLSearchParams(location.search);const guest=(params.get('guest')||'').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,100);if(guest){const hindi=/[\u0900-\u097f]/.test(guest);document.getElementById('guest-name').textContent=(hindi?'प्रिय ':'Dear ')+guest;document.getElementById('guest-name').classList.toggle('devanagari',hindi);document.getElementById('guest-message').textContent=hindi?'आपके बिना यह उत्सव अधूरा है':'Our celebration would be incomplete without you.';document.getElementById('guest-message').classList.toggle('devanagari',hindi)}const scenes=document.querySelectorAll('.portrait-scene,.closing');if('IntersectionObserver'in window){const watcher=new IntersectionObserver(entries=>entries.forEach(e=>e.target.classList.toggle('scene-awake',e.isIntersecting)),{threshold:.05});scenes.forEach(el=>watcher.observe(el))}else scenes.forEach(el=>el.classList.add('scene-awake'))})();
