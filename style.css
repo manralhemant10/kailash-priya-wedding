@@ -45,3 +45,6 @@
 
 /* Anchor the cropped portrait to the scene edge at every screen size. */
 .portrait-scene .hero-couple{bottom:0;object-position:center bottom}
+
+/* Make the invitation cover tappable in Safari and mobile browsers. */
+.cover:not(.opened){cursor:pointer;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
